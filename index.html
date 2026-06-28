@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NovelAI 畫師串組合器</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__glow"></div>
+    <nav class="topbar">
+      <div class="brand">
+        <span class="brand__mark">NAI</span>
+        <span>
+          <strong>NovelAI 畫師串網站</strong>
+          <small>Artist Chain Mixer</small>
+        </span>
+      </div>
+      <div class="topbar__actions">
+        <button class="ghost" id="themeBtn" type="button">切換主題</button>
+        <a class="ghost" href="#artistGrid">畫師資料</a>
+      </div>
+    </nav>
+
+    <section class="composer" aria-label="隨機 tag 組合器">
+      <div class="composer__title">
+        <div>
+          <p class="eyebrow">Random Tag Combiner</p>
+          <h1>從 736 名畫師中抽出畫師串</h1>
+          <p>可控制抽取數量、權重符號、抽取範圍，並一鍵複製到 NovelAI prompt。</p>
+        </div>
+        <div class="stat-pill">
+          <span id="artistTotal">736</span>
+          <small>artist tags</small>
+        </div>
+      </div>
+
+      <div class="controls controls--composer">
+        <label>
+          抽取數量
+          <input id="randomCount" type="number" min="1" max="30" value="4" />
+        </label>
+        <label>
+          權重模式
+          <select id="weightMode">
+            <option value="normal">普通：artist:name</option>
+            <option value="up">加權：{artist:name}</option>
+            <option value="down">降權：[artist:name]</option>
+            <option value="mixed">混合：普通 / 加權 / 降權</option>
+            <option value="strongMixed">強混合：{} / [] / [[]]</option>
+          </select>
+        </label>
+        <label>
+          抽取範圍
+          <select id="randomScope">
+            <option value="all">全部畫師</option>
+            <option value="filtered">目前搜尋結果</option>
+            <option value="selected">已選畫師</option>
+          </select>
+        </label>
+        <label class="checkline">
+          <input id="includeQuality" type="checkbox" />
+          加入常用品質詞
+        </label>
+      </div>
+
+      <div class="output-block">
+        <textarea id="output" spellcheck="false" placeholder="按「隨機生成」後會在這裡輸出畫師串"></textarea>
+        <div class="output-actions">
+          <button id="generateBtn" class="primary" type="button">隨機生成</button>
+          <button id="shuffleBtn" type="button">重排輸出</button>
+          <button id="copyOutputBtn" type="button">複製輸出</button>
+          <button id="clearOutputBtn" type="button">清空</button>
+        </div>
+      </div>
+    </section>
+  </header>
+
+  <main>
+    <section class="panel presets-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Starter Presets</p>
+          <h2>常用畫師串起點</h2>
+        </div>
+        <p>按下卡片可套用；仍可在輸出格直接修改。</p>
+      </div>
+      <div id="presetList" class="preset-list"></div>
+    </section>
+
+    <section class="panel selected-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Selected Chain</p>
+          <h2>已選畫師串</h2>
+        </div>
+        <p><span id="selectedCount">0</span> 個已選</p>
+      </div>
+      <div class="selected-tools">
+        <button id="buildSelectedBtn" type="button">生成已選串</button>
+        <button id="copySelectedBtn" type="button">複製已選串</button>
+        <button id="clearSelectedBtn" type="button">清除已選</button>
+      </div>
+      <div id="selectedList" class="selected-list empty">尚未選擇畫師。點擊下方畫師卡片即可加入。</div>
+    </section>
+
+    <section id="artistGrid" class="panel browser-panel">
+      <div class="section-head section-head--stack">
+        <div>
+          <p class="eyebrow">Artist Database</p>
+          <h2>畫師資料方格</h2>
+        </div>
+        <div class="browser-stats" id="browserStats">正在載入...</div>
+      </div>
+
+      <div class="controls browser-controls">
+        <label class="search-label">
+          搜尋畫師 / tag
+          <input id="searchInput" type="search" placeholder="例如 ciloranko、wlop、sho" />
+        </label>
+        <label>
+          n×n 方格
+          <input id="gridN" type="number" min="2" max="8" value="4" />
+        </label>
+        <label>
+          排序
+          <select id="sortMode">
+            <option value="id">原始順序</option>
+            <option value="az">A → Z</option>
+            <option value="za">Z → A</option>
+            <option value="short">Tag 短 → 長</option>
+            <option value="long">Tag 長 → 短</option>
+          </select>
+        </label>
+        <button id="resetSearchBtn" type="button">重設</button>
+      </div>
+
+      <div class="pager">
+        <button id="prevPageBtn" type="button">上一頁</button>
+        <span id="pageInfo">1 / 1</span>
+        <button id="nextPageBtn" type="button">下一頁</button>
+      </div>
+
+      <div id="cards" class="cards" aria-live="polite"></div>
+    </section>
+
+    <section class="panel import-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Custom Data</p>
+          <h2>新增自訂畫師 tag</h2>
+        </div>
+        <p>輸入格式：每行一個 <code>artist:name</code>，資料會保存在本機瀏覽器。</p>
+      </div>
+      <textarea id="customInput" class="custom-input" spellcheck="false" placeholder="artist:example_artist,&#10;artist:another_artist"></textarea>
+      <div class="selected-tools">
+        <button id="importBtn" type="button">加入自訂資料</button>
+        <button id="exportBtn" type="button">下載目前資料 JSON</button>
+        <button id="resetCustomBtn" type="button">清除自訂資料</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <footer>
+    <p>本網站只整理畫師 tag 與 prompt 組合工具；使用時請尊重原創作品與平台規則。</p>
+  </footer>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
