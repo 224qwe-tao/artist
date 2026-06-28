@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NovelAI 畫師串組合器</title>
-  <link rel="stylesheet" href="assets/styles.v3.css" />
+  <link rel="stylesheet" href="assets/styles.v4.css" />
 </head>
 <body>
   <header class="hero">
@@ -14,7 +14,7 @@
         <span class="brand__mark">NAI</span>
         <span>
           <strong>NovelAI 畫師串網站</strong>
-          <small>Artist Chain Mixer · v3</small>
+          <small>Artist Chain Mixer · v4</small>
         </span>
       </div>
       <div class="topbar__actions">
@@ -57,6 +57,7 @@
             <option value="all">全部畫師</option>
             <option value="filtered">目前搜尋結果</option>
             <option value="selected">已選畫師</option>
+            <option value="category">目前分類</option>
           </select>
         </label>
         <label class="checkline">
@@ -105,6 +106,43 @@
       <div id="selectedList" class="selected-list empty">尚未選擇畫師。點擊下方畫師卡片即可加入。</div>
     </section>
 
+
+
+    <section class="panel category-panel">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Artist Categories</p>
+          <h2>畫師分類</h2>
+        </div>
+        <p id="categoryStats">未建立分類</p>
+      </div>
+      <div class="controls category-controls">
+        <label>
+          目前分類
+          <select id="categorySelect">
+            <option value="all">全部畫師</option>
+          </select>
+        </label>
+        <label>
+          分類名稱
+          <input id="categoryNameInput" type="text" placeholder="例如：厚塗、線稿、常用畫師" />
+        </label>
+        <label class="checkline category-checkline">
+          <input id="categoryOnly" type="checkbox" />
+          只顯示此分類內畫師
+        </label>
+        <button id="createCategoryBtn" type="button">新增分類</button>
+        <button id="renameCategoryBtn" type="button">重新命名</button>
+        <button id="deleteCategoryBtn" type="button">刪除分類</button>
+      </div>
+      <div class="selected-tools category-tools">
+        <button id="addSelectedToCategoryBtn" type="button">將已選畫師加入分類</button>
+        <button id="copyCategoryBtn" type="button">複製分類畫師串</button>
+        <button id="clearCategoryBtn" type="button">清空此分類</button>
+      </div>
+      <div id="categoryArtistList" class="selected-list empty">選擇或新增分類後，可在畫師方格按「加入分類」，或把已選畫師一次加入分類。</div>
+    </section>
+
     <section id="artistGrid" class="panel browser-panel">
       <div class="section-head section-head--stack">
         <div>
@@ -134,6 +172,7 @@
           </select>
         </label>
         <button id="resetSearchBtn" type="button">重設</button>
+        <button id="addArtistBtn" type="button">新增畫師方格</button>
         <button id="clearLocalMetaBtn" type="button">清除方格編輯</button>
       </div>
 
@@ -152,7 +191,7 @@
           <p class="eyebrow">Custom Data</p>
           <h2>新增自訂畫師 tag</h2>
         </div>
-        <p>輸入格式：每行一個 <code>artist:name</code>。每張方格會自動加入 Danbooru Posts 搜尋 URL；方格名稱、圖片 icon、URL 也會保存在本機瀏覽器。</p>
+        <p>輸入格式：每行一個 <code>artist:name</code>。需要單張新增時，可按上方「新增畫師方格」。每張方格會自動加入 Danbooru Posts 搜尋 URL；方格名稱、圖片 icon、URL、分類都會保存在本機瀏覽器。</p>
       </div>
       <textarea id="customInput" class="custom-input" spellcheck="false" placeholder="artist:example_artist,&#10;artist:another_artist"></textarea>
       <div class="selected-tools">
@@ -231,7 +270,7 @@
     <p>本網站只整理畫師 tag 與 prompt 組合工具；使用時請尊重原創作品與平台規則。</p>
   </footer>
 
-  <script src="assets/data.v3.js"></script>
-  <script src="assets/app.v3.js"></script>
+  <script src="assets/data.v4.js"></script>
+  <script src="assets/app.v4.js"></script>
 </body>
 </html>

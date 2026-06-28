@@ -1,27 +1,34 @@
-# NovelAI 畫師串網站 v3
+# NovelAI 畫師串網站 v4
 
-離線靜態網站，用於整理 NovelAI 畫師 tag、建立多畫師畫師串、隨機抽取 prompt。
-
-## v3 更新
-
-- 修正部分瀏覽器載入舊版快取導致「編輯」按鈕消失的問題：CSS / JS / data 檔改用 v3 檔名。
-- 每張畫師方格右上方加入明顯的「編輯」按鈕。
-- 方格底部加入「Danbooru」按鈕。
-- 每個畫師自動加入 Danbooru Posts 搜尋 URL：`https://danbooru.donmai.us/posts?tags=<artist tag>`。
-- 編輯視窗可加入 / 打開 Danbooru URL。
-- 可為畫師加入 Pixiv、X、Fanbox、Patreon、Bluesky、Danbooru 等相關 URL。
-- 可上傳畫師圖片 icon 或填入圖片 URL，方便在 n×n 方格中辨認。
-- 編輯資料會保存於瀏覽器 localStorage。
+這是一個可離線使用的 NovelAI 畫師串 / 畫師資料方格網站。
 
 ## 使用方法
 
-1. 解壓 ZIP。
-2. 雙擊 `index.html`。
-3. 在畫師卡片右上按「編輯」。
-4. 在編輯視窗加入畫師 URL、圖片 icon、備註。
-5. 按「儲存方格資料」。
+1. 解壓 `novelai_artist_chain_site_v4.zip`
+2. 打開資料夾
+3. 雙擊 `index.html`
+
+## v4 新增功能
+
+- 新增「新增畫師方格」按鈕，可以直接建立單個畫師卡片。
+- 新增畫師時可填寫顯示名稱、NovelAI tag、備註、URL、圖片 URL，或上傳方格 icon。
+- 新增畫師會保存為自訂畫師資料，重新打開網站後仍會保留。
+- 新增「畫師分類」功能。
+- 可建立、重新命名、刪除、清空分類。
+- 可在畫師方格中把指定畫師加入 / 移出目前分類。
+- 可把「已選畫師串」一次加入目前分類。
+- 可勾選「只顯示此分類內畫師」，讓該類別只顯示你添加的畫師 tag。
+- 隨機 tag 組合器新增「目前分類」抽取範圍。
+- 下載 JSON 時會包含分類資料。
+
+## v3 功能保留
+
+- 每個畫師方格可編輯。
+- 可加入 Danbooru Posts URL。
+- 可加入 Pixiv / X / Fanbox / Patreon / Bluesky 等相關 URL。
+- 可上傳或填入畫師圖片 icon，方便辨認。
+- 方格資料會保存在瀏覽器 localStorage。
 
 ## 注意
 
-- 上傳圖片 icon 會儲存在瀏覽器 localStorage，建議使用小圖。
-- 只整理 tag 和 URL；使用作品時請遵守相關平台規則。
+資料保存在目前瀏覽器的 localStorage。更換瀏覽器、清除網站資料或無痕模式會令自訂資料消失；建議定期使用「下載目前資料 JSON」備份。
