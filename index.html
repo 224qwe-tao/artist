@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NovelAI 畫師串組合器</title>
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/styles.v3.css" />
 </head>
 <body>
   <header class="hero">
@@ -14,7 +14,7 @@
         <span class="brand__mark">NAI</span>
         <span>
           <strong>NovelAI 畫師串網站</strong>
-          <small>Artist Chain Mixer</small>
+          <small>Artist Chain Mixer · v3</small>
         </span>
       </div>
       <div class="topbar__actions">
@@ -152,7 +152,7 @@
           <p class="eyebrow">Custom Data</p>
           <h2>新增自訂畫師 tag</h2>
         </div>
-        <p>輸入格式：每行一個 <code>artist:name</code>。方格名稱、圖片 icon、URL 也會保存在本機瀏覽器。</p>
+        <p>輸入格式：每行一個 <code>artist:name</code>。每張方格會自動加入 Danbooru Posts 搜尋 URL；方格名稱、圖片 icon、URL 也會保存在本機瀏覽器。</p>
       </div>
       <textarea id="customInput" class="custom-input" spellcheck="false" placeholder="artist:example_artist,&#10;artist:another_artist"></textarea>
       <div class="selected-tools">
@@ -204,7 +204,7 @@
             <textarea id="editNote" rows="3" spellcheck="false" placeholder="例如：色彩鮮艷、厚塗、偏角色立繪..."></textarea>
           </label>
           <label>
-            相關 URLs（一行一個，會自動顯示 Pixiv / X / Fanbox / Patreon 等 icon）
+            相關 URLs（一行一個，會自動顯示 Danbooru / Pixiv / X / Fanbox / Patreon 等 icon）
             <textarea id="editUrls" rows="7" spellcheck="false" placeholder="https://www.pixiv.net/users/...&#10;https://x.com/...&#10;https://..."></textarea>
           </label>
         </div>
@@ -217,6 +217,8 @@
 
       <div class="modal__actions">
         <button id="copyEditedTagBtn" type="button">複製 tag</button>
+        <button id="addDanbooruUrlBtn" type="button">加入 Danbooru URL</button>
+        <button id="openDanbooruUrlBtn" type="button">打開 Danbooru</button>
         <button id="resetArtistEditBtn" type="button">還原此畫師</button>
         <button id="saveArtistEditBtn" class="primary" type="button">儲存方格資料</button>
       </div>
@@ -229,7 +231,7 @@
     <p>本網站只整理畫師 tag 與 prompt 組合工具；使用時請尊重原創作品與平台規則。</p>
   </footer>
 
-  <script src="assets/data.js"></script>
-  <script src="assets/app.js"></script>
+  <script src="assets/data.v3.js"></script>
+  <script src="assets/app.v3.js"></script>
 </body>
 </html>
