@@ -134,6 +134,7 @@
           </select>
         </label>
         <button id="resetSearchBtn" type="button">重設</button>
+        <button id="clearLocalMetaBtn" type="button">清除方格編輯</button>
       </div>
 
       <div class="pager">
@@ -151,7 +152,7 @@
           <p class="eyebrow">Custom Data</p>
           <h2>新增自訂畫師 tag</h2>
         </div>
-        <p>輸入格式：每行一個 <code>artist:name</code>，資料會保存在本機瀏覽器。</p>
+        <p>輸入格式：每行一個 <code>artist:name</code>。方格名稱、圖片 icon、URL 也會保存在本機瀏覽器。</p>
       </div>
       <textarea id="customInput" class="custom-input" spellcheck="false" placeholder="artist:example_artist,&#10;artist:another_artist"></textarea>
       <div class="selected-tools">
@@ -161,6 +162,66 @@
       </div>
     </section>
   </main>
+
+
+  <div class="modal" id="editModal" aria-hidden="true">
+    <div class="modal__backdrop" data-close-modal></div>
+    <section class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal__head">
+        <div>
+          <p class="eyebrow">Edit Artist Card</p>
+          <h2 id="editModalTitle">編輯畫師方格</h2>
+        </div>
+        <button id="closeEditBtn" class="icon-btn" type="button" aria-label="關閉編輯視窗">×</button>
+      </div>
+
+      <div class="editor-layout">
+        <div class="icon-editor">
+          <div id="editIconPreview" class="icon-preview" aria-label="畫師圖片預覽"></div>
+          <label class="file-button">
+            上傳畫師圖片 icon
+            <input id="editIconFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+          </label>
+          <button id="removeIconBtn" type="button">移除圖片</button>
+          <p class="hint">建議使用正方形圖片；上傳後會自動壓縮成適合方格顯示的 icon。</p>
+        </div>
+
+        <div class="editor-form">
+          <label>
+            顯示名稱
+            <input id="editDisplay" type="text" placeholder="例如 thirty 8ght" />
+          </label>
+          <label>
+            NovelAI tag
+            <input id="editTag" type="text" placeholder="artist:example" />
+          </label>
+          <label>
+            圖片 URL / icon URL
+            <input id="editIconUrl" type="url" placeholder="https://.../icon.png" />
+          </label>
+          <label>
+            備註 / 辨認提示
+            <textarea id="editNote" rows="3" spellcheck="false" placeholder="例如：色彩鮮艷、厚塗、偏角色立繪..."></textarea>
+          </label>
+          <label>
+            相關 URLs（一行一個，會自動顯示 Pixiv / X / Fanbox / Patreon 等 icon）
+            <textarea id="editUrls" rows="7" spellcheck="false" placeholder="https://www.pixiv.net/users/...&#10;https://x.com/...&#10;https://..."></textarea>
+          </label>
+        </div>
+      </div>
+
+      <div class="url-preview-block">
+        <strong>URL 預覽</strong>
+        <div id="editUrlPreview" class="url-preview empty">尚未加入 URL。</div>
+      </div>
+
+      <div class="modal__actions">
+        <button id="copyEditedTagBtn" type="button">複製 tag</button>
+        <button id="resetArtistEditBtn" type="button">還原此畫師</button>
+        <button id="saveArtistEditBtn" class="primary" type="button">儲存方格資料</button>
+      </div>
+    </section>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
