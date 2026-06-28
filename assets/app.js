@@ -4,13 +4,18 @@
   const QUALITY = 'best quality, amazing quality, very aesthetic, absurdres';
   const STORAGE_KEY = 'nai_artist_chain_custom_v1';
   const THEME_KEY = 'nai_artist_chain_theme_v1';
+  const META_KEY = 'nai_artist_chain_artist_meta_v2';
+  const ICON_MAX = 360;
 
   const baseData = window.ARTIST_DATA || { artists: [], presets: [] };
   let customArtists = loadCustomArtists();
+  let artistMeta = loadArtistMeta();
   let artists = mergeArtists(baseData.artists, customArtists);
   let filtered = [...artists];
   let selected = new Map();
   let page = 1;
+  let editingKey = null;
+  let editingIconData = '';
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -35,6 +40,7 @@
     gridN: $('gridN'),
     sortMode: $('sortMode'),
     resetSearchBtn: $('resetSearchBtn'),
+    clearLocalMetaBtn: $('clearLocalMetaBtn'),
     prevPageBtn: $('prevPageBtn'),
     nextPageBtn: $('nextPageBtn'),
     pageInfo: $('pageInfo'),
@@ -45,6 +51,20 @@
     resetCustomBtn: $('resetCustomBtn'),
     themeBtn: $('themeBtn'),
     toast: $('toast'),
+    editModal: $('editModal'),
+    closeEditBtn: $('closeEditBtn'),
+    editIconPreview: $('editIconPreview'),
+    editIconFile: $('editIconFile'),
+    removeIconBtn: $('removeIconBtn'),
+    editDisplay: $('editDisplay'),
+    editTag: $('editTag'),
+    editIconUrl: $('editIconUrl'),
+    editNote: $('editNote'),
+    editUrls: $('editUrls'),
+    editUrlPreview: $('editUrlPreview'),
+    copyEditedTagBtn: $('copyEditedTagBtn'),
+    resetArtistEditBtn: $('resetArtistEditBtn'),
+    saveArtistEditBtn: $('saveArtistEditBtn'),
   };
 
   init();
@@ -67,6 +87,7 @@
     els.gridN.addEventListener('input', () => { page = 1; renderCards(); });
     els.sortMode.addEventListener('change', () => { page = 1; applyFilter(); });
     els.resetSearchBtn.addEventListener('click', resetSearch);
+    els.clearLocalMetaBtn.addEventListener('click', clearAllArtistEdits);
     els.prevPageBtn.addEventListener('click', () => changePage(-1));
     els.nextPageBtn.addEventListener('click', () => changePage(1));
     els.buildSelectedBtn.addEventListener('click', buildSelectedOutput);
@@ -76,11 +97,26 @@
     els.exportBtn.addEventListener('click', exportJson);
     els.resetCustomBtn.addEventListener('click', resetCustomArtists);
     els.themeBtn.addEventListener('click', toggleTheme);
+
+    els.closeEditBtn.addEventListener('click', closeEditModal);
+    els.editModal.querySelectorAll('[data-close-modal]').forEach(el => el.addEventListener('click', closeEditModal));
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && els.editModal.classList.contains('is-open')) closeEditModal();
+    });
+    els.editIconFile.addEventListener('change', handleIconFileChange);
+    els.removeIconBtn.addEventListener('click', removeEditingIcon);
+    els.editIconUrl.addEventListener('input', () => updateIconPreview());
+    els.editDisplay.addEventListener('input', updateIconPreview);
+    els.editUrls.addEventListener('input', renderEditUrlPreview);
+    els.saveArtistEditBtn.addEventListener('click', saveArtistEdit);
+    els.resetArtistEditBtn.addEventListener('click', resetCurrentArtistEdit);
+    els.copyEditedTagBtn.addEventListener('click', () => copyText(normalizeTag(els.editTag.value), '已複製編輯中的 tag'));
   }
 
   function loadCustomArtists() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
     } catch (_) {
       return [];
     }
@@ -90,32 +126,65 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(customArtists));
   }
 
+  function loadArtistMeta() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(META_KEY) || '{}');
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveArtistMeta() {
+    try {
+      localStorage.setItem(META_KEY, JSON.stringify(artistMeta));
+    } catch (err) {
+      showToast('儲存失敗：圖片可能太大，請換較小圖片或只使用圖片 URL');
+      throw err;
+    }
+  }
+
   function mergeArtists(base, custom) {
     const result = [];
     const seen = new Set();
-    [...base, ...custom].forEach((item, idx) => {
-      const tag = normalizeTag(item.tag || item.name || '');
+    [...base, ...custom].forEach((item) => {
+      const baseTag = normalizeTag(item.tag || item.name || '');
+      if (!baseTag) return;
+      const baseKey = keyOf(baseTag);
+      const meta = artistMeta[baseKey] || {};
+      const tag = normalizeTag(meta.tag || item.tag || item.name || '');
       if (!tag || seen.has(tag.toLowerCase())) return;
       seen.add(tag.toLowerCase());
       const name = tag.split(':', 2)[1];
+      const urls = Array.isArray(meta.urls) ? meta.urls.filter(Boolean) : [];
       result.push({
         id: result.length + 1,
+        key: baseKey,
         name,
-        display: (item.display || name).replaceAll('_', ' '),
+        display: (meta.display || item.display || name).replaceAll('_', ' '),
         tag,
+        note: meta.note || item.note || '',
+        urls,
+        icon: meta.icon || item.icon || '',
+        iconUrl: meta.iconUrl || item.iconUrl || '',
         sourceLine: item.sourceLine || null,
         custom: !!item.custom,
+        edited: !!artistMeta[baseKey],
       });
     });
     return result;
   }
 
   function normalizeTag(input) {
-    let tag = String(input).trim().replace(/,$/, '').replaceAll('\\xa0', ' ');
+    let tag = String(input || '').trim().replace(/,$/, '').replaceAll('\\xa0', ' ');
     tag = tag.replace(/^\[+|\]+$/g, '').replace(/^\{+|\}+$/g, '').trim();
     if (!tag) return '';
     if (!/^artist\s*:/i.test(tag)) tag = `artist:${tag}`;
     return tag.replace(/^artist\s*:\s*/i, 'artist:');
+  }
+
+  function keyOf(tag) {
+    return normalizeTag(tag).toLowerCase();
   }
 
   function renderPresets() {
@@ -148,7 +217,12 @@
     const q = els.searchInput.value.trim().toLowerCase();
     filtered = artists.filter((a) => {
       if (!q) return true;
-      return a.name.toLowerCase().includes(q) || a.display.toLowerCase().includes(q) || a.tag.toLowerCase().includes(q);
+      const urlText = a.urls.join(' ').toLowerCase();
+      return a.name.toLowerCase().includes(q)
+        || a.display.toLowerCase().includes(q)
+        || a.tag.toLowerCase().includes(q)
+        || a.note.toLowerCase().includes(q)
+        || urlText.includes(q);
     });
 
     const sort = els.sortMode.value;
@@ -171,7 +245,8 @@
     const start = (page - 1) * perPage;
     const visible = filtered.slice(start, start + perPage);
 
-    els.browserStats.textContent = `共 ${artists.length} 個 tag｜符合 ${filtered.length} 個｜每頁 ${n}×${n} = ${perPage} 張卡`;
+    const editedCount = artists.filter(a => a.edited).length;
+    els.browserStats.textContent = `共 ${artists.length} 個 tag｜符合 ${filtered.length} 個｜已編輯 ${editedCount} 個｜每頁 ${n}×${n} = ${perPage} 張卡`;
     els.pageInfo.textContent = `${page} / ${totalPages}`;
     els.prevPageBtn.disabled = page <= 1;
     els.nextPageBtn.disabled = page >= totalPages;
@@ -186,21 +261,68 @@
     visible.forEach((artist) => {
       const card = document.createElement('article');
       const isSelected = selected.has(artist.tag);
-      card.className = `artist-card${isSelected ? ' is-selected' : ''}`;
+      card.className = `artist-card${isSelected ? ' is-selected' : ''}${artist.edited ? ' is-edited' : ''}`;
+      const urlBadges = artist.urls.slice(0, 4).map(urlBadgeHtml).join('');
+      const moreUrls = artist.urls.length > 4 ? `<span class="url-more">+${artist.urls.length - 4}</span>` : '';
       card.innerHTML = `
-        <span class="artist-card__num">#${String(artist.id).padStart(3, '0')}${artist.custom ? ' · 自訂' : ''}</span>
+        <div class="artist-card__top">
+          ${artistIconHtml(artist)}
+          <span class="artist-card__num">#${String(artist.id).padStart(3, '0')}${artist.custom ? ' · 自訂' : ''}${artist.edited ? ' · 已編輯' : ''}</span>
+        </div>
         <h3>${escapeHtml(artist.display)}</h3>
         <code>${escapeHtml(artist.tag)}</code>
+        ${artist.note ? `<p class="artist-note">${escapeHtml(artist.note)}</p>` : ''}
+        <div class="url-strip ${artist.urls.length ? '' : 'is-empty'}">${urlBadges}${moreUrls || (artist.urls.length ? '' : '<span>未加入 URL</span>')}</div>
         <div class="card-actions">
           <button type="button" data-action="select">${isSelected ? '移除' : '加入'}</button>
           <button type="button" data-action="copy">複製</button>
+          <button type="button" data-action="edit">編輯</button>
         </div>
       `;
       card.querySelector('[data-action="select"]').addEventListener('click', () => toggleSelected(artist));
       card.querySelector('[data-action="copy"]').addEventListener('click', () => copyText(artist.tag, '已複製 tag'));
+      card.querySelector('[data-action="edit"]').addEventListener('click', () => openEditModal(artist));
       frag.appendChild(card);
     });
     els.cards.appendChild(frag);
+  }
+
+  function artistIconHtml(artist) {
+    const src = artist.icon || artist.iconUrl;
+    if (src) {
+      return `<div class="artist-avatar has-image"><img src="${escapeAttr(src)}" alt="${escapeAttr(artist.display)} icon" loading="lazy" onerror="this.closest('.artist-avatar').classList.add('image-error')"></div>`;
+    }
+    const initials = getInitials(artist.display || artist.name);
+    return `<div class="artist-avatar"><span>${escapeHtml(initials)}</span></div>`;
+  }
+
+  function urlBadgeHtml(url) {
+    const info = detectUrlType(url);
+    return `<a class="url-badge url-badge--${info.key}" href="${escapeAttr(url)}" title="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(info.label)}</a>`;
+  }
+
+  function detectUrlType(rawUrl) {
+    const value = String(rawUrl || '').trim();
+    let host = '';
+    try { host = new URL(value).hostname.toLowerCase(); } catch (_) { host = value.toLowerCase(); }
+    if (host.includes('pixiv.net')) return { key: 'pixiv', label: 'P' };
+    if (host.includes('x.com') || host.includes('twitter.com')) return { key: 'x', label: '𝕏' };
+    if (host.includes('fanbox')) return { key: 'fanbox', label: 'F' };
+    if (host.includes('sketch.pixiv')) return { key: 'sketch', label: 'S' };
+    if (host.includes('bsky.app')) return { key: 'bsky', label: '🦋' };
+    if (host.includes('patreon')) return { key: 'patreon', label: 'P' };
+    if (host.includes('subscribestar')) return { key: 'subscribestar', label: 'S' };
+    if (host.includes('youtube')) return { key: 'youtube', label: '▶' };
+    if (host.includes('instagram')) return { key: 'instagram', label: '◎' };
+    return { key: 'link', label: '↗' };
+  }
+
+  function getInitials(display) {
+    const cleaned = String(display || '?').replace(/^artist:/i, '').replace(/[()_\-]+/g, ' ').trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
   function toggleSelected(artist) {
@@ -225,10 +347,203 @@
     [...selected.values()].forEach((artist) => {
       const chip = document.createElement('span');
       chip.className = 'chip';
-      chip.innerHTML = `<span>${escapeHtml(artist.tag)}</span><button type="button" aria-label="移除 ${escapeHtml(artist.name)}">×</button>`;
+      chip.innerHTML = `<span>${escapeHtml(artist.tag)}</span><button type="button" aria-label="移除 ${escapeAttr(artist.name)}">×</button>`;
       chip.querySelector('button').addEventListener('click', () => toggleSelected(artist));
       els.selectedList.appendChild(chip);
     });
+  }
+
+  function openEditModal(artist) {
+    editingKey = artist.key;
+    editingIconData = artist.icon || '';
+    els.editDisplay.value = artist.display || '';
+    els.editTag.value = artist.tag || '';
+    els.editIconUrl.value = artist.iconUrl || '';
+    els.editNote.value = artist.note || '';
+    els.editUrls.value = (artist.urls || []).join('\n');
+    els.editIconFile.value = '';
+    updateIconPreview();
+    renderEditUrlPreview();
+    els.editModal.classList.add('is-open');
+    els.editModal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => els.editDisplay.focus(), 20);
+  }
+
+  function closeEditModal() {
+    els.editModal.classList.remove('is-open');
+    els.editModal.setAttribute('aria-hidden', 'true');
+    editingKey = null;
+    editingIconData = '';
+  }
+
+  async function handleIconFileChange() {
+    const file = els.editIconFile.files && els.editIconFile.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('請選擇圖片檔');
+      els.editIconFile.value = '';
+      return;
+    }
+    try {
+      editingIconData = await resizeImageFile(file, ICON_MAX);
+      els.editIconUrl.value = '';
+      updateIconPreview();
+      showToast('已載入圖片 icon');
+    } catch (err) {
+      console.error(err);
+      showToast('圖片讀取失敗');
+    }
+  }
+
+  function resizeImageFile(file, size) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('file read failed'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('image load failed'));
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#101936';
+          ctx.fillRect(0, 0, size, size);
+          const scale = Math.max(size / img.width, size / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (size - w) / 2;
+          const y = (size - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function removeEditingIcon() {
+    editingIconData = '';
+    els.editIconUrl.value = '';
+    els.editIconFile.value = '';
+    updateIconPreview();
+    showToast('已移除圖片 icon');
+  }
+
+  function updateIconPreview() {
+    const display = els.editDisplay.value || els.editTag.value || 'artist';
+    const src = editingIconData || els.editIconUrl.value.trim();
+    if (src) {
+      els.editIconPreview.className = 'icon-preview has-image';
+      els.editIconPreview.innerHTML = `<img src="${escapeAttr(src)}" alt="icon preview" onerror="this.parentElement.classList.add('image-error')">`;
+    } else {
+      els.editIconPreview.className = 'icon-preview';
+      els.editIconPreview.innerHTML = `<span>${escapeHtml(getInitials(display))}</span>`;
+    }
+  }
+
+  function renderEditUrlPreview() {
+    const urls = parseUrlLines(els.editUrls.value);
+    els.editUrlPreview.innerHTML = '';
+    if (!urls.length) {
+      els.editUrlPreview.className = 'url-preview empty';
+      els.editUrlPreview.textContent = '尚未加入 URL。';
+      return;
+    }
+    els.editUrlPreview.className = 'url-preview';
+    urls.forEach((url) => {
+      const row = document.createElement('a');
+      const info = detectUrlType(url);
+      row.href = url;
+      row.target = '_blank';
+      row.rel = 'noopener noreferrer';
+      row.className = 'url-row';
+      row.innerHTML = `<span class="url-badge url-badge--${info.key}">${escapeHtml(info.label)}</span><span>${escapeHtml(url)}</span>`;
+      els.editUrlPreview.appendChild(row);
+    });
+  }
+
+  function parseUrlLines(text) {
+    const seen = new Set();
+    return String(text || '').split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(s => (/^https?:\/\//i.test(s) ? s : `https://${s}`))
+      .filter((url) => {
+        const key = url.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function saveArtistEdit() {
+    if (!editingKey) return;
+    const tag = normalizeTag(els.editTag.value);
+    if (!tag) {
+      showToast('請輸入有效 tag');
+      return;
+    }
+    const display = els.editDisplay.value.trim() || tag.split(':', 2)[1];
+    const meta = {
+      display,
+      tag,
+      note: els.editNote.value.trim(),
+      urls: parseUrlLines(els.editUrls.value),
+      icon: editingIconData,
+      iconUrl: els.editIconUrl.value.trim(),
+    };
+    Object.keys(meta).forEach((k) => {
+      if (Array.isArray(meta[k]) && !meta[k].length) delete meta[k];
+      if (typeof meta[k] === 'string' && !meta[k]) delete meta[k];
+    });
+    artistMeta[editingKey] = meta;
+    try {
+      saveArtistMeta();
+    } catch (_) {
+      return;
+    }
+    refreshArtistsPreservingSelection();
+    applyFilter();
+    renderSelected();
+    closeEditModal();
+    showToast('已儲存方格資料');
+  }
+
+  function resetCurrentArtistEdit() {
+    if (!editingKey) return;
+    delete artistMeta[editingKey];
+    try { saveArtistMeta(); } catch (_) { return; }
+    refreshArtistsPreservingSelection();
+    applyFilter();
+    renderSelected();
+    closeEditModal();
+    showToast('已還原此畫師方格');
+  }
+
+  function clearAllArtistEdits() {
+    const ok = confirm('是否清除所有畫師方格編輯資料？包括圖片 icon、URL、備註與名稱修改。');
+    if (!ok) return;
+    artistMeta = {};
+    try { saveArtistMeta(); } catch (_) { return; }
+    artists = mergeArtists(baseData.artists, customArtists);
+    selected.clear();
+    page = 1;
+    applyFilter();
+    renderSelected();
+    showToast('已清除所有方格編輯');
+  }
+
+
+  function refreshArtistsPreservingSelection() {
+    const oldSelected = [...selected.values()].map(a => a.key);
+    artists = mergeArtists(baseData.artists, customArtists);
+    selected.clear();
+    artists.forEach((artist) => {
+      if (oldSelected.includes(artist.key)) selected.set(artist.tag, artist);
+    });
+    els.artistTotal.textContent = artists.length.toString();
   }
 
   function generateRandom() {
@@ -334,7 +649,13 @@
   }
 
   function exportJson() {
-    const payload = JSON.stringify({ artists, selected: [...selected.keys()] }, null, 2);
+    const payload = JSON.stringify({
+      artists,
+      selected: [...selected.keys()],
+      artistMeta,
+      customArtists,
+      exportedAt: new Date().toISOString(),
+    }, null, 2);
     const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -420,5 +741,9 @@
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('`', '&#096;');
   }
 })();
